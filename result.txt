@@ -1,26 +1,14 @@
-Reconstructed secret with 1 shares = 72
-Reconstructed secret with 1 shares = 7233
-Reconstructed secret with 1 shares = 7233121
-Reconstructed secret with 2 shares = 723312172
-Reconstructed secret with 2 shares = 72331217233
-Reconstructed secret with 2 shares = 72331217233121
-Reconstructed secret with 3 shares = 7233121723312172
-Reconstructed secret with 3 shares = 723312172331217233
-Reconstructed secret with 3 shares = 723312172331217233121
-Reconstructed secret with 4 shares = 72331217233121723312172
-Reconstructed secret with 4 shares = 7233121723312172331217233
-Reconstructed secret with 4 shares = 7233121723312172331217233121
-Reconstructed secret with 5 shares = 723312172331217233121723312172
-Reconstructed secret with 5 shares = 72331217233121723312172331217233
-Reconstructed secret with 5 shares = 72331217233121723312172331217233121
-Reconstructed secret with 6 shares = 7233121723312172331217233121723312172
-Reconstructed secret with 6 shares = 723312172331217233121723312172331217233
-Reconstructed secret with 6 shares = 723312172331217233121723312172331217233121
-Reconstructed secret with 7 shares = 72331217233121723312172331217233121723312172
-Reconstructed secret with 7 shares = 7233121723312172331217233121723312172331217233
-Reconstructed secret with 7 shares = 7233121723312172331217233121723312172331217233121
-Reconstructed secret with 8 shares = 723312172331217233121723312172331217233121723312172
-Reconstructed secret with 8 shares = 72331217233121723312172331217233121723312172331217233
-Reconstructed secret with 8 shares = 72331217233121723312172331217233121723312172331217233121
-Reconstructed secret with 1 shares = 72331217233121723312172331217233121723312172331217233121ciao
-Reconstructed secret with 2 shares = 72331217233121723312172331217233121723312172331217233121ciaociao
+Reconstructed secret with 1 shares for layer 2 = 29"/|
+Reconstructed secret with 2 shares for layer 2 = ]N'n
+Reconstructed secret with 3 shares for layer 2 = U=Swi
+Reconstructed secret with 4 shares for layer 2 = i|B~$
+Reconstructed secret with 5 shares for layer 2 = /;;%[
+Reconstructed secret with 6 shares for layer 2 = 5F`"f
+Reconstructed secret with 7 shares for layer 2 = 958575
+Reconstructed secret with 8 shares for layer 2 = 958575
+Reconstructed secret with 9 shares for layer 2 = 958575
+----------------------------------------------------------------------------------------------
+Reconstructed secret with 1 shares for layer 1 = |Q_u;_J
+Reconstructed secret with 2 shares for layer 1 = cioa ttui
+Reconstructed secret with 3 shares for layer 1 = cioa ttui
+----------------------------------------------------------------------------------------------
