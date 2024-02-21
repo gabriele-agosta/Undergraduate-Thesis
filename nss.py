@@ -38,8 +38,6 @@ def main():
                 dealer.chooseSecret(players[i - 1][j].y)
                 j += 1
             dealer.chooseQ()
-            dealer.chooseP()
-            dealer.chooseGenerator()
 
             for n_players in range(1, len(players[i])):
                 for cipher in dealer.secret:

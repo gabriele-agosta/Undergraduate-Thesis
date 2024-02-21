@@ -1,5 +1,6 @@
 import math
-import random
+import tkinter as tk
+from tkinter import filedialog
 
 class Dealer:
 
@@ -7,9 +8,6 @@ class Dealer:
         self.threshold = threshold
         self.secret = None
         self.q = None
-        self.p = None
-        self.r = None
-        self.g = None
         self.layers = None
 
     def chooseSecret(self, secret=None):
@@ -25,41 +23,23 @@ class Dealer:
                 secret = input("Insert your secret: ")
                 ascii_secret = [ord(c) for c in secret]
             else:
-                with open("secret.txt", "r") as file:
-                    secret = file.read()
-                    ascii_secret = [ord(c) for c in secret]
+                root = tk.Tk()
+                root.withdraw()
+                file_path = filedialog.askopenfilename()
+    
+                if file_path:
+                    with open(file_path, "r") as file:
+                        secret = file.read()
+                        ascii_secret = [ord(c) for c in secret]
+                else:
+                    print("No file selected.")
+                root.destroy()
         else:
             ascii_secret = [ord(c) for c in str(secret)]
         self.secret = ascii_secret
 
     def chooseQ(self):
         self.q = 127
-
-    def chooseP(self):
-        r = 1
-        while True:
-            p = r*self.q + 1
-            if self._isPrime(p):
-                break
-            r = r + 1
-        self.p, self.r = p, r
-    
-    def chooseGenerator(self):
-        Z_p_star = []
-        for i in range(0, self.p):
-            if(math.gcd(i, self.p) == 1):
-                Z_p_star.append(i)
-        
-        G = [] 
-        for i in Z_p_star:
-            G.append(i**self.r % self.p)
-
-        G = list(set(G))
-        G.sort()    
-
-        g = random.choice(list(filter(lambda g: g != 1, G)))
-
-        self.g = g
     
     def chooseLayers(self):
         self.layers = int(input("Insert how many layers of NSS you want to use: "))
