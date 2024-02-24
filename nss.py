@@ -1,6 +1,9 @@
 from player import *
 from dealer import *
 from polynomial import *
+import threading
+
+semaphore = threading.Semaphore(0)
 
 def delta(i, Xs, q):
     d = 1
@@ -16,6 +19,18 @@ def reconstruct(players, q):
         secretReconstructed += delta(player.x, Xs, q) * player.y
     return secretReconstructed % q
 
+def process_dealer(dealer, players, player):
+    if player:
+        dealer.chooseSecret(player.y)
+    dealer.chooseQ()
+
+    for n_players in range(1, len(players)):
+        for cipher in dealer.secret:
+            f = Polynomial(cipher, dealer.q, dealer.threshold)
+            dealer.distributeShares(players, f)
+    
+    
+
 def main():
     layers = int(input("Insert how many layers of NSS you want to use: "))
     players = [[] for _ in range(layers)]
@@ -29,6 +44,9 @@ def main():
         dealers[layer] += [Dealer(threshold) for _ in range(len(players[layer - 1]))] if ((layer - 1) >= 0) else [Dealer(threshold)]
     
     # Encryption
+        
+    # Potrei prendere il segreto fuori dal ciclo, e poi fare un thread per ogni player del layer, e aspettando che finiscano
+    '''
     for i in range(len(dealers)):
         j = 0
         for dealer in dealers[i]:
@@ -43,6 +61,23 @@ def main():
                 for cipher in dealer.secret:
                     f = Polynomial(cipher, dealer.q, dealer.threshold)
                     dealer.distributeShares(players[i], f)
+    '''
+
+    dealers[0][0].chooseSecret()
+    threads = []
+    for layer in range(0, len(dealers)):
+        j = 0
+        for dealer in dealers[layer]:
+            prev_player = players[layer - 1][j] if layer > 0 else None
+            thread = threading.Thread(target=process_dealer, args=(dealer, players[layer], prev_player))
+            threads.append(thread)
+            thread.start()
+            
+            j += 1
+    for thread in threads:
+        thread.join()
+
+    
     
     # Decryption
     with open('result.txt', 'w') as result:
