@@ -3,8 +3,6 @@ from dealer import *
 from polynomial import *
 import threading
 
-semaphore = threading.Semaphore(0)
-
 def delta(i, Xs, q):
     d = 1
     for j in Xs:
@@ -19,18 +17,35 @@ def reconstruct(players, q):
         secretReconstructed += delta(player.x, Xs, q) * player.y
     return secretReconstructed % q
 
-def process_dealer(dealer, players, player):
+def reconstruct_and_write(result, players, dealers, i, n_players):
+    reconstructedSecret = ""
+    for dealer in dealers[i]:
+        for cipher in dealer.secret:
+            f = Polynomial(cipher, dealer.q, dealer.threshold)
+            dealer.distributeShares(players[i], f)
+            reconstructedSecret += chr(reconstruct(players[i][:n_players + 1], dealer.q))
+    result.write(f"Reconstructed secret with {n_players + 1} shares for layer {i + 1} = {reconstructedSecret}\n")
+
+def process_layer(result, players, dealers, i):
+    threads = []
+    for n_players in range(0, len(players)):
+        reconstruct_thread = threading.Thread(target=reconstruct_and_write, args=(result, players, dealers, i, n_players))
+        threads.append(reconstruct_thread)
+        reconstruct_thread.start()
+
+    for thread in threads:
+        thread.join()
+
+def splitSecret(dealer, players, player):
     if player:
         dealer.chooseSecret(player.y)
     dealer.chooseQ()
 
-    for n_players in range(1, len(players)):
+    for _ in range(1, len(players)):
         for cipher in dealer.secret:
             f = Polynomial(cipher, dealer.q, dealer.threshold)
             dealer.distributeShares(players, f)
     
-    
-
 def main():
     layers = int(input("Insert how many layers of NSS you want to use: "))
     players = [[] for _ in range(layers)]
@@ -69,7 +84,7 @@ def main():
         j = 0
         for dealer in dealers[layer]:
             prev_player = players[layer - 1][j] if layer > 0 else None
-            thread = threading.Thread(target=process_dealer, args=(dealer, players[layer], prev_player))
+            thread = threading.Thread(target=splitSecret, args=(dealer, players[layer], prev_player))
             threads.append(thread)
             thread.start()
             
@@ -77,9 +92,8 @@ def main():
     for thread in threads:
         thread.join()
 
-    
-    
     # Decryption
+    '''
     with open('result.txt', 'w') as result:
         reconstructedSecret = None
         for i in range(len(players) -1, -1, -1):
@@ -92,6 +106,16 @@ def main():
                         dealer.distributeShares(players[i], f)
                         reconstructedSecret += chr(reconstruct(players[i][:n_players + 1], dealer.q))
                 result.write(f"Reconstructed secret with {n_players + 1} shares for layer {i + 1} = {reconstructedSecret}\n")
+            result.write("----------------------------------------------------------------------------------------------\n")
+    '''
+
+    layer_threads = []
+    with open('result.txt', 'w') as result:
+        for i in range(len(players) - 1, -1, -1):
+            layer_thread = threading.Thread(target=process_layer, args=(result, players[i], dealers, i))
+            layer_threads.append(layer_thread)
+            layer_thread.start()
+            layer_thread.join()
             result.write("----------------------------------------------------------------------------------------------\n")
 
 if __name__ == "__main__":
