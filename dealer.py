@@ -3,12 +3,10 @@ import tkinter as tk
 from tkinter import filedialog
 
 class Dealer:
-
     def __init__(self, threshold):
         self.threshold = threshold
         self.secret = None
         self.q = None
-        self.layers = None
 
     def chooseSecret(self, secret=None):
         ascii_secret = None
@@ -40,9 +38,6 @@ class Dealer:
 
     def chooseQ(self):
         self.q = 127
-    
-    def chooseLayers(self):
-        self.layers = int(input("Insert how many layers of NSS you want to use: "))
 
     def distributeShares(self, players, f):
         for player in players:

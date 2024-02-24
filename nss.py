@@ -1,7 +1,8 @@
 from player import *
 from dealer import *
 from polynomial import *
-import threading
+
+import concurrent.futures
 
 def delta(i, Xs, q):
     d = 1
@@ -17,28 +18,19 @@ def reconstruct(players, q):
         secretReconstructed += delta(player.x, Xs, q) * player.y
     return secretReconstructed % q
 
-def reconstruct_and_write(result, players, dealers, i, n_players):
+def rebuildShare(i, n_players, players, dealers):
     reconstructedSecret = ""
-    for dealer in dealers[i]:
-        for cipher in dealer.secret:
-            f = Polynomial(cipher, dealer.q, dealer.threshold)
-            dealer.distributeShares(players[i], f)
-            reconstructedSecret += chr(reconstruct(players[i][:n_players + 1], dealer.q))
-    result.write(f"Reconstructed secret with {n_players + 1} shares for layer {i + 1} = {reconstructedSecret}\n")
+    with open('result.txt', 'a') as result:
+        for dealer in dealers[i]:
+            for cipher in dealer.secret:
+                f = Polynomial(cipher, dealer.q, dealer.threshold)
+                dealer.distributeShares(players[i], f)
+                reconstructedSecret += chr(reconstruct(players[i][:n_players + 1], dealer.q))
+        result.write(f"Reconstructed secret with {n_players + 1} shares for layer {i + 1} = {reconstructedSecret}\n")
 
-def process_layer(result, players, dealers, i):
-    threads = []
-    for n_players in range(0, len(players)):
-        reconstruct_thread = threading.Thread(target=reconstruct_and_write, args=(result, players, dealers, i, n_players))
-        threads.append(reconstruct_thread)
-        reconstruct_thread.start()
-
-    for thread in threads:
-        thread.join()
-
-def splitSecret(dealer, players, player):
-    if player:
-        dealer.chooseSecret(player.y)
+def splitSecret(dealer, players, prev_player):
+    if prev_player:
+        dealer.chooseSecret(prev_player.y)
     dealer.chooseQ()
 
     for _ in range(1, len(players)):
@@ -47,76 +39,38 @@ def splitSecret(dealer, players, player):
             dealer.distributeShares(players, f)
     
 def main():
-    layers = int(input("Insert how many layers of NSS you want to use: "))
-    players = [[] for _ in range(layers)]
-    dealers = [[] for _ in range(layers)]
+        layers = int(input("Insert how many layers of NSS you want to use: "))
+        players = [[] for _ in range(layers)]
+        dealers = [[] for _ in range(layers)]
+        open('result.txt', 'w').close()
 
-    for layer in range(layers):
-        n = int(input(f"Choose the number of players for layer {layer + 1}: "))
-        threshold = int(input(f"Choose the threshold for layer {layer + 1}: "))
-        # Attualmente sto mettendo tutti i player come trusted, per evitare di gestire fin da subito la complessità di avere trusted e non trusted
-        players[layer] += [Player(i, True) for i in range(1, n + 1)]
-        dealers[layer] += [Dealer(threshold) for _ in range(len(players[layer - 1]))] if ((layer - 1) >= 0) else [Dealer(threshold)]
-    
-    # Encryption
+        for layer in range(layers):
+            n = int(input(f"Choose the number of players for layer {layer + 1}: "))
+            threshold = int(input(f"Choose the threshold for layer {layer + 1}: "))
+            # Attualmente sto mettendo tutti i player come trusted, per evitare di gestire fin da subito la complessità di avere trusted e non trusted
+            players[layer] += [Player(i, True) for i in range(1, n + 1)]
+            dealers[layer] += [Dealer(threshold) for _ in range(len(players[layer - 1]))] if ((layer - 1) >= 0) else [Dealer(threshold)]
         
-    # Potrei prendere il segreto fuori dal ciclo, e poi fare un thread per ogni player del layer, e aspettando che finiscano
-    '''
-    for i in range(len(dealers)):
-        j = 0
-        for dealer in dealers[i]:
-            if i == 0:
-                dealer.chooseSecret()
-            else:
-                dealer.chooseSecret(players[i - 1][j].y)
-                j += 1
-            dealer.chooseQ()
+        # Encryption
+        dealers[0][0].chooseSecret()
+        with concurrent.futures.ThreadPoolExecutor() as executor:  
+            futures = []
+            for layer in range(len(dealers)):
+                j = 0
+                for dealer in dealers[layer]:
+                    prev_player = players[layer - 1][j] if layer > 0 else None
+                    futures.append(executor.submit(splitSecret, dealer, players[layer], prev_player))
+                    j += 1
+            concurrent.futures.wait(futures)
 
-            for n_players in range(1, len(players[i])):
-                for cipher in dealer.secret:
-                    f = Polynomial(cipher, dealer.q, dealer.threshold)
-                    dealer.distributeShares(players[i], f)
-    '''
 
-    dealers[0][0].chooseSecret()
-    threads = []
-    for layer in range(0, len(dealers)):
-        j = 0
-        for dealer in dealers[layer]:
-            prev_player = players[layer - 1][j] if layer > 0 else None
-            thread = threading.Thread(target=splitSecret, args=(dealer, players[layer], prev_player))
-            threads.append(thread)
-            thread.start()
-            
-            j += 1
-    for thread in threads:
-        thread.join()
-
-    # Decryption
-    '''
-    with open('result.txt', 'w') as result:
-        reconstructedSecret = None
-        for i in range(len(players) -1, -1, -1):
-            for n_players in range(0, len(players[i])):
-                reconstructedSecret = ""
-                for dealer in dealers[i]:
-                    for cipher in dealer.secret:
-                        f = Polynomial(cipher, dealer.q, dealer.threshold)
-
-                        dealer.distributeShares(players[i], f)
-                        reconstructedSecret += chr(reconstruct(players[i][:n_players + 1], dealer.q))
-                result.write(f"Reconstructed secret with {n_players + 1} shares for layer {i + 1} = {reconstructedSecret}\n")
-            result.write("----------------------------------------------------------------------------------------------\n")
-    '''
-
-    layer_threads = []
-    with open('result.txt', 'w') as result:
-        for i in range(len(players) - 1, -1, -1):
-            layer_thread = threading.Thread(target=process_layer, args=(result, players[i], dealers, i))
-            layer_threads.append(layer_thread)
-            layer_thread.start()
-            layer_thread.join()
-            result.write("----------------------------------------------------------------------------------------------\n")
+        # Decryption
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = []
+            for i in range(len(players) - 1, -1, -1):
+                for n_players in range(0, len(players[i])):
+                    futures.append(executor.submit(rebuildShare, i, n_players, players, dealers))
+            concurrent.futures.wait(futures)
 
 if __name__ == "__main__":
     main()
