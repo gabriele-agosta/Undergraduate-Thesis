@@ -7,6 +7,7 @@ class Dealer:
         self.threshold = threshold
         self.secret = None
         self.q = None
+        self.polynomials = []
 
     def chooseSecret(self, secret=None):
         ascii_secret = None
@@ -41,7 +42,7 @@ class Dealer:
 
     def distributeShares(self, players, f):
         for player in players:
-            player.y = f.computePolynomial(player.x, self.q)
+            player.y.append(f.computePolynomial(player.x, self.q))
 
     def _isPrime(self, n):
         if n == 2:
