@@ -1,5 +1,6 @@
 import math
 import tkinter as tk
+import numpy as np
 from tkinter import filedialog
 
 class Dealer:
@@ -42,7 +43,7 @@ class Dealer:
 
     def distributeShares(self, players, f):
         for player in players:
-            player.y.append(f.computePolynomial(player.x, self.q))
+            player.y.append(f(player.x) % self.q)
 
     def _isPrime(self, n):
         if n == 2:

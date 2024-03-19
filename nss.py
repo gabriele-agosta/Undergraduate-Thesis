@@ -1,6 +1,8 @@
 from player import *
 from dealer import *
-from polynomial import *
+
+import random
+import numpy as np
 import concurrent.futures
 
 def delta(i, Xs, q):
@@ -22,7 +24,8 @@ def rebuildShare(i, n_players, players, q):
     with open('result.txt', 'a') as result:
         n_shares = len(players[i][0].y)
         for j in range(n_shares):
-            reconstructedSecret += chr(reconstruct(players[i][:n_players + 1], q, j))
+            value = reconstruct(players[i][:n_players + 1], q, j)
+            reconstructedSecret += chr(int(value))
         result.write(f"Reconstructed secret with {n_players + 1} shares for layer {i + 1} = {reconstructedSecret}\n")
 
 def decrypt(players, dealers):
@@ -31,7 +34,7 @@ def decrypt(players, dealers):
             for i in range(len(players) - 1, -1, -1):
                 for n_players in range(0, len(players[i])):
                     futures.append(executor.submit(rebuildShare, i, n_players, players, dealers[i][0].q))
-            concurrent.futures.wait(futures)
+                concurrent.futures.wait(futures)
 
 def splitSecret(dealer, players, prev_player):
     if prev_player:
@@ -39,7 +42,8 @@ def splitSecret(dealer, players, prev_player):
     dealer.chooseQ()
 
     for cipher in dealer.secret:
-        dealer.polynomials.append(Polynomial(cipher, dealer.q, dealer.threshold))
+        coefficients = [random.randint(1, dealer.q) for _ in range(dealer.threshold - 1)]
+        dealer.polynomials.append(np.polynomial.Polynomial([cipher] + coefficients))
         dealer.distributeShares(players, dealer.polynomials[-1])
 
 def encrypt(players, dealers):
@@ -51,7 +55,7 @@ def encrypt(players, dealers):
                 prev_player = players[layer - 1][j] if layer > 0 else None
                 futures.append(executor.submit(splitSecret, dealer, players[layer], prev_player))
                 j += 1
-        concurrent.futures.wait(futures)
+            concurrent.futures.wait(futures)
     
 def main():
         layers = int(input("Insert how many layers of NSS you want to use: "))
