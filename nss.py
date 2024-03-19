@@ -30,11 +30,11 @@ def rebuildShare(i, n_players, players, q):
 
 def decrypt(players, dealers):
     with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = []
-            for i in range(len(players) - 1, -1, -1):
-                for n_players in range(0, len(players[i])):
-                    futures.append(executor.submit(rebuildShare, i, n_players, players, dealers[i][0].q))
-                concurrent.futures.wait(futures)
+        futures = []
+        for i in range(len(players) - 1, -1, -1):
+            for n_players in range(0, len(players[i])):
+                futures.append(executor.submit(rebuildShare, i, n_players, players, dealers[i][0].q))
+            concurrent.futures.wait(futures)
 
 def splitSecret(dealer, players, prev_player):
     if prev_player:
@@ -47,29 +47,39 @@ def splitSecret(dealer, players, prev_player):
         dealer.distributeShares(players, polynomial)
 
 def encrypt(players, dealers):
-    with concurrent.futures.ThreadPoolExecutor() as executor:  
-        futures = []
-        for layer in range(len(dealers)):
-            j = 0
-            for dealer in dealers[layer]:
+    for layer, dealer_layer in enumerate(dealers):
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for j, dealer in enumerate(dealer_layer):
                 prev_player = players[layer - 1][j] if layer > 0 else None
                 futures.append(executor.submit(splitSecret, dealer, players[layer], prev_player))
-                j += 1
             concurrent.futures.wait(futures)
 
+def populateProactivePolynomials(players):
+    return [player.proactivePolynomials for player in players]
+
+def proactiveHelper(player, q, threshold):
+    player.recomputePolynomials(q, threshold - 1)
+
+def recomputeSecret(player, proactivePolynomials, index):
+    player.recomputeSecret(proactivePolynomials, index)
+
 def proactive(players, dealers):
-    for layer in range(len(players)):
-        for player in players[layer]:
-            player.recomputePolynomials(dealers[layer][0].q, dealers[layer][0].threshold - 1)
-    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for layer, playerList in enumerate(players):
+            for player in playerList:
+                futures.append(executor.submit(proactiveHelper, player, dealers[layer][0].q, dealers[layer][0].threshold))
+        concurrent.futures.wait(futures)
+
     for i in range(len(players) - 1, -1, -1):
-        proactivePolynomials = []
-        for player in players[i]:
-            proactivePolynomials.append(player.proactivePolynomials)
-        
-        for j in range(len(proactivePolynomials)):
+        proactivePolynomials = populateProactivePolynomials(players[i])
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
             for player in players[i]:
-                player.recomputeSecret(proactivePolynomials, j)
+                for j in range(len(proactivePolynomials)):
+                    futures.append(executor.submit(recomputeSecret, player, proactivePolynomials, j))
+            concurrent.futures.wait(futures)
 
 def removePlayer(players, dealers):
     choice = ""
