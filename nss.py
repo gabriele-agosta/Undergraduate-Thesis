@@ -43,8 +43,8 @@ def splitSecret(dealer, players, prev_player):
 
     for cipher in dealer.secret:
         coefficients = [random.randint(1, dealer.q) for _ in range(dealer.threshold - 1)]
-        dealer.polynomials.append(np.polynomial.Polynomial([cipher] + coefficients))
-        dealer.distributeShares(players, dealer.polynomials[-1])
+        polynomial = np.polynomial.Polynomial([cipher] + coefficients)
+        dealer.distributeShares(players, polynomial)
 
 def encrypt(players, dealers):
     with concurrent.futures.ThreadPoolExecutor() as executor:  
@@ -56,6 +56,38 @@ def encrypt(players, dealers):
                 futures.append(executor.submit(splitSecret, dealer, players[layer], prev_player))
                 j += 1
             concurrent.futures.wait(futures)
+
+def proactive(players, dealers):
+    for layer in range(len(players)):
+        for player in players[layer]:
+            player.recomputePolynomials(dealers[layer][0].q, dealers[layer][0].threshold - 1)
+    
+    for i in range(len(players) - 1, -1, -1):
+        proactivePolynomials = []
+        for player in players[i]:
+            proactivePolynomials.append(player.proactivePolynomials)
+        
+        for j in range(len(proactivePolynomials)):
+            for player in players[i]:
+                player.recomputeSecret(proactivePolynomials, j)
+
+def removePlayer(players, dealers):
+    choice = ""
+    layer, nPlayer = 0, 0
+
+    while True:
+        choice = input("Would you like to remove a player that's not trusted anymore? (yes/no)\n")
+        if choice.lower() == "yes":
+            while True:
+                layer = int(input("Select the layer for the player you want to remove\n"))
+                if layer <= len(players):
+                    nPlayer = int(input("Select the player you want to remove\n"))
+                    if nPlayer <= len(players[layer - 1]):
+                        players[layer - 1].pop(nPlayer - 1)
+                        proactive(players, dealers)
+                        break
+        elif choice.lower() == "no":
+            break
     
 def main():
         layers = int(input("Insert how many layers of NSS you want to use: "))
@@ -72,6 +104,10 @@ def main():
         dealers[0][0].chooseSecret()
         encrypt(players, dealers)
         decrypt(players, dealers)
+        removePlayer(players, dealers)
+        open('result.txt', 'w').close()
+        decrypt(players, dealers)
+
 
 if __name__ == "__main__":
     main()
