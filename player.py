@@ -20,5 +20,5 @@ class Player:
         value = 0
         for polynomials in othersProactivePolynomials:
             value += polynomials[i](self.x)
-        self.polynomials[i] += value
+        self.y[i] = self.polynomials[i](self.x) + value
         
