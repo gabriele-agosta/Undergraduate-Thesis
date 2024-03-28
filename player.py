@@ -1,24 +1,25 @@
 import numpy as np
-import random
+from Pyfhel import Pyfhel
 
 class Player:
     def __init__(self, x, trusted):
         self.x = x
         self.y = []
-        self.polynomials = []
-        self.proactivePolynomials = []
         self.trusted = trusted
+        self.HE = self.manageHomomorphic()
     
-    def recomputePolynomials(self, q, threshold):
-        self.proactivePolynomials.clear()
-        for _ in range(len(self.polynomials)):
-            coefficients = [random.randint(1, q) for _ in range(threshold - 1)]
-            polynomial = np.polynomial.Polynomial([0] + coefficients)
-            self.proactivePolynomials.append(polynomial)
+    def manageHomomorphic(self):
+        HE = Pyfhel()
+        HE.contextGen(scheme='bfv', n=2**14, t_bits=20)
+        HE.keyGen()
+        return HE
     
-    def recomputeSecret(self, othersProactivePolynomials, i):
-        value = 0
-        for polynomials in othersProactivePolynomials:
-            value += polynomials[i](self.x)
-        self.y[i] = self.polynomials[i](self.x) + value
+    def setShare(self, newValue, index):
+        self.y[index] = self.HE.decryptInt(newValue)[0]
+    
+    def getEncrypteShare(self, i):
+        return self.HE.encryptInt(np.array([self.y[i]], dtype=np.int64))
         
+
+# Il dealer stabilisce il segreto iniziale
+# Se il dealer tiene i polinomi
