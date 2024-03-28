@@ -76,12 +76,12 @@ def encrypt(players, dealers):
 def recomputePolynomials(dealer):
     return dealer.recomputePolynomials()
 
-def recomputeShares(dealers, players):
+def recomputeShares(dealers, players, lastLayer):
     for dealer in dealers:
         for player in players:
             for i in range(len(player.y)):
                 encryptedShare = player.getEncrypteShare(i)
-                player.setShare(dealer.recomputeShare(encryptedShare, player.x, i))
+                player.setShare(dealer.recomputeShare(encryptedShare, player.x, i), lastLayer)
 
 def proactive(players, dealers):
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -94,7 +94,8 @@ def proactive(players, dealers):
     for i in range(len(dealers) - 1, -1, -1):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = []
-            futures.append(executor.submit(recomputeShares, dealers[i], players[i]))
+            lastLayer = True if i == len(dealers) - 1 else False
+            futures.append(executor.submit(recomputeShares, dealers[i], players[i], lastLayer))
             concurrent.futures.wait(futures)
 
 def removePlayer(players, dealers):

@@ -14,8 +14,8 @@ class Player:
         HE.keyGen()
         return HE
     
-    def setShare(self, newValue, index):
-        self.y[index] = self.HE.decryptInt(newValue)[0]
+    def setShare(self, newValue, index, lastLayer):
+        self.y[index] = self.HE.decryptInt(newValue)[0] if not lastLayer else newValue
     
     def getEncrypteShare(self, i):
         return self.HE.encryptInt(np.array([self.y[i]], dtype=np.int64))
