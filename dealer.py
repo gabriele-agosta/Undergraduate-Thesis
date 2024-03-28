@@ -5,8 +5,6 @@ import random
 from tkinter import filedialog
 from Pyfhel import Pyfhel
 
-# Se è il dealer a generare i nuovi polinomi, non ce ne saranno n, uno per ogni valore da cifrare, ma solamente uno.
-
 class Dealer:
     def __init__(self, threshold, homomorphic=False):
         self.threshold = threshold

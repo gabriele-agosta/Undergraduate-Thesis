@@ -19,7 +19,3 @@ class Player:
     
     def getEncrypteShare(self, i):
         return self.HE.encryptInt(np.array([self.y[i]], dtype=np.int64))
-        
-
-# Il dealer stabilisce il segreto iniziale
-# Se il dealer tiene i polinomi
