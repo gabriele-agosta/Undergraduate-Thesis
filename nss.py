@@ -1,10 +1,9 @@
-from player import *
-from dealer import *
-
 import random
 import numpy as np
 import concurrent.futures
 
+from player import *
+from dealer import *
 from Pyfhel import Pyfhel
 
 def delta(i, Xs, q):
@@ -21,21 +20,19 @@ def reconstruct(players, i, q):
         secretReconstructed += delta(player.x, Xs, q) * player.y[i]
     return secretReconstructed
 
-def rebuildShare(i, n_players, players, q, HE):
+def rebuildShare(layer, n_players, players, q, HE):
     reconstructedSecret, decryptedSecret = [], ""
-    n_shares = len(players[i][0].y)
+    n_shares = len(players[layer][0].y)
 
     for j in range(n_shares):
-        value = reconstruct(players[i][:n_players + 1], j, q)
-        reconstructedSecret.append(value) if HE else reconstructedSecret.append(chr(int(value % q)))
+        value = reconstruct(players[layer][:n_players + 1], j, q)
+        reconstructedSecret.append(value)
     if HE:
         for k in range(len(reconstructedSecret)):
-            reconstructedSecret[k] = HE.decryptInt(reconstructedSecret[k])[0] % q
-        for val in reconstructedSecret:
-            decryptedSecret += chr(val)
-    else:
-        decryptedSecret = "".join(reconstructedSecret)
-    return (n_players + 1, i + 1, decryptedSecret)
+            reconstructedSecret[k] = HE.decrypt(reconstructedSecret[k])[0] % q
+    for val in reconstructedSecret:
+        decryptedSecret += chr(val) if HE else val.__repr__()
+    return (n_players + 1, layer + 1, decryptedSecret)
 
 def decrypt(players, dealers):
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -43,7 +40,8 @@ def decrypt(players, dealers):
          
         for i in range(len(players) - 1, -1, -1):
             for n_players in range(0, len(players[i])):
-                futures.append(executor.submit(rebuildShare, i, n_players, players, dealers[i][0].q, dealers[i][0].HE))
+                HE = dealers[i][0].HE if i == 0 else None
+                futures.append(executor.submit(rebuildShare, i, n_players, players, dealers[i][0].q, HE))
         for future in futures:
             results.append(future.result())
         
@@ -52,25 +50,23 @@ def decrypt(players, dealers):
                 nPlayers, layer, decryptedValue = result
                 file.write(f"Reconstructed secret with {nPlayers} shares for layer {layer} = {decryptedValue}\n")
 
-def splitSecret(dealer, players, prev_player, lastLayer):
+def splitSecret(dealer, players, prev_player):
     if prev_player:
-        dealer.chooseSecret(prev_player.y[-1])
+        dealer.chooseSecret(prev_player.y)
     dealer.chooseQ()
 
-    for cipher in dealer.secret:
+    for secretDigit in dealer.secret:
         coefficients = [random.randint(1, dealer.q) for _ in range(dealer.threshold - 1)]
-        polynomial = np.polynomial.Polynomial([cipher] + coefficients)
-        dealer.distributeShares(players, polynomial, lastLayer)
+        polynomial = np.polynomial.Polynomial([0] + coefficients)
+        dealer.distributeShares(players, polynomial, secretDigit)
 
 def encrypt(players, dealers):
-    lastLayer = False
     for layer, dealer_layer in enumerate(dealers):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = []
-            lastLayer = True if layer == len(players) - 1 else False
             for j, dealer in enumerate(dealer_layer):
                 prev_player = players[layer - 1][j] if layer > 0 else None
-                futures.append(executor.submit(splitSecret, dealer, players[layer], prev_player, lastLayer))
+                futures.append(executor.submit(splitSecret, dealer, players[layer], prev_player))
             concurrent.futures.wait(futures)
 
 def recomputePolynomials(dealer):
@@ -125,12 +121,12 @@ def main():
         for layer in range(layers):
             n = int(input(f"Choose the number of players for layer {layer + 1}: "))
             threshold = int(input(f"Choose the threshold for layer {layer + 1}: "))
-            players[layer] += [Player(i, True) for i in range(1, n + 1)] if layer < 1 else [Player(i, False) for i in range(1, n + 1)]
+            players[layer] += [Player(i, layer) for i in range(1, n + 1)] if layer < 1 else [Player(i, layer) for i in range(1, n + 1)]
             
             if (layer - 1) >= 0:
-                dealers[layer] += [Dealer(threshold) for _ in range(len(players[layer - 1]))] if layer < layers - 1 else [Dealer(threshold, True) for _ in range(len(players[layer - 1]))]
+                dealers[layer] += [Dealer(threshold, False) for _ in range(len(players[layer - 1]))]
             else:
-                dealers[layer] += [Dealer(threshold)]
+                dealers[layer] += [Dealer(threshold, True)]
 
         dealers[0][0].chooseSecret()
         encrypt(players, dealers)
