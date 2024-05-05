@@ -42,11 +42,12 @@ def decrypt(players, dealers):
                 futures.append(executor.submit(rebuildShare, i, n_players, players, dealers[i][0].q, HE))
         for future in futures:
             results.append(future.result())
+        concurrent.futures.wait(futures)
         
-        with open('result.txt', 'a') as file:
-            for result in results:
-                nPlayers, layer, decryptedValue = result
-                file.write(f"Reconstructed secret with {nPlayers} shares for layer {layer} = {decryptedValue}\n")
+    with open('result.txt', 'a') as file:
+        for result in results:
+            nPlayers, layer, decryptedValue = result
+            file.write(f"Reconstructed secret with {nPlayers} shares for layer {layer} = {decryptedValue}\n")
 
 def splitSecret(dealer, players, prev_player):
     if prev_player:
