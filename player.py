@@ -9,13 +9,6 @@ class Player:
         self.x = x
         self.y = []
         self.layer = layer
-        self.HE = self.manageHomomorphic()
-    
-    def manageHomomorphic(self):
-        HE = Pyfhel()
-        HE.contextGen(scheme='bfv', n=2**11, t_bits=20)
-        HE.keyGen()
-        return HE
 
     def addShare(self, value):
         self.y.append(value)
