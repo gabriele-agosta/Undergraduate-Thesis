@@ -3,9 +3,11 @@ import numpy as np
 import random
 
 from tkinter import filedialog
-from Pyfhel import Pyfhel
+from Pyfhel import Pyfhel, PyCtxt
 
 class Dealer:
+    __slots__ = ['threshold', 'secret', 'q', 'polynomials', 'HE']
+
     def __init__(self, threshold, homomorphic=False):
         self.threshold = threshold
         self.secret = None
@@ -15,7 +17,7 @@ class Dealer:
 
     def manageHomomorphic(self):
         HE = Pyfhel()
-        HE.contextGen(scheme='bfv', n=2**14, t_bits=20)
+        HE.contextGen(scheme='bfv', n=2**11, t_bits=20)
         HE.keyGen()
         return HE
 
@@ -31,7 +33,7 @@ class Dealer:
             ascii_secret = []
             if choice == "1":
                 secret = input("Insert your secret: ")
-                ascii_secret = [ord(c) for c in secret]
+                ascii_secret = ascii_secret = [self.HE.encryptInt(np.array([ord(c)], dtype=np.int64)) for c in secret]
             else:
                 root = tk.Tk()
                 root.withdraw()
@@ -40,22 +42,22 @@ class Dealer:
                 if file_path:
                     with open(file_path, "r") as file:
                         secret = file.read()
-                        ascii_secret = [ord(c) for c in secret]
+                        ascii_secret = ascii_secret = [self.HE.encryptInt(np.array([ord(c)], dtype=np.int64)) for c in secret]
                 else:
                     print("No file selected.")
                 root.destroy()
         else:
-            ascii_secret = [ord(c) for c in str(secret)]
+            ascii_secret = [ord(c) if type(c) != PyCtxt else c for c in secret]
         self.secret = ascii_secret
 
     def chooseQ(self):
         self.q = 127
 
-    def distributeShares(self, players, f, lastLayer):
+    def distributeShares(self, players, f, secretDigit):
         for i in range(len(players)):
             self.polynomials.append(f)
-            val = f(players[i].x) % self.q
-            players[i].y.append(players[i].HE.encryptInt(np.array([val], dtype=np.int64) )) if lastLayer else players[i].y.append(val)
+            val = (f(players[i].x) % self.q) + secretDigit
+            players[i].addShare(val)
     
     def recomputePolynomials(self):
         for i in range(len(self.polynomials)):
