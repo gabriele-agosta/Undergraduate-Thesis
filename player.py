@@ -3,12 +3,11 @@ import numpy as np
 from Pyfhel import Pyfhel
 
 class Player:
-    __slots__ = ['x', 'y', 'layer', 'HE']
+    __slots__ = ['x', 'y']
 
-    def __init__(self, x, layer):
+    def __init__(self, x):
         self.x = x
         self.y = []
-        self.layer = layer
 
     def addShare(self, value):
         self.y.append(value)

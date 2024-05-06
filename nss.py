@@ -116,12 +116,8 @@ def main():
         for layer in range(layers):
             n = int(input(f"Choose the number of players for layer {layer + 1}: "))
             threshold = int(input(f"Choose the threshold for layer {layer + 1}: "))
-            players[layer] += [Player(i, layer) for i in range(1, n + 1)] if layer < 1 else [Player(i, layer) for i in range(1, n + 1)]
-            
-            if (layer - 1) >= 0:
-                dealers[layer] += [Dealer(threshold, False) for _ in range(len(players[layer - 1]))]
-            else:
-                dealers[layer] += [Dealer(threshold, True)]
+            players[layer] += [Player(i) for i in range(1, n + 1)]
+            dealers[layer] += [Dealer(threshold, False) for _ in range(len(players[layer - 1]))] if (layer - 1) >= 0 else [Dealer(threshold, True)]
 
         dealers[0][0].chooseSecret()
         encrypt(players, dealers)
