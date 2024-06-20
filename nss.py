@@ -1,6 +1,8 @@
 import random
 import numpy as np
 import concurrent.futures
+import sys
+import argparse
 
 from player import *
 from dealer import *
@@ -106,25 +108,62 @@ def removePlayer(players, dealers):
                         choice = input("Would you like to remove a player that's not trusted anymore? (yes/no)\n")
             proactive(players, dealers)
             break
+
+def parse_arguments():
+    if len(sys.argv) > 1:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-l', '--layers', type=int, required=False, 
+                            help='Number of layers')
+        parser.add_argument('-n', '--players', nargs='+', type=int, required=False, 
+                            help='Number of players for each layers')
+        parser.add_argument('-t', '--thresholds', nargs='+', type=int, required=False, 
+                            help='Thresholds for each layer')
+        parser.add_argument('-f', '--file', nargs='+', type=str, required=False, 
+                            help='Name of the file to encrypt')
+        parser.add_argument('-p', '--proactive', nargs='+', type=bool, required=False, 
+                            help='Use proactive NSS or not')
+        
+        args = parser.parse_args()
+        print(args)
+        
+        if args and len(args.players) != args.layers or len(args.thresholds) != args.layers:
+            parser.error("Number of players and thresholds must be equal to the number of layers")
+        return args
+    return None
     
 def main():
-        layers = int(input("Insert how many layers of NSS you want to use: "))
-        players = [[] for _ in range(layers)]
-        dealers = [[] for _ in range(layers)]
-        open('result.txt', 'w').close()
+    args = parse_arguments()
 
-        for layer in range(layers):
-            n = int(input(f"Choose the number of players for layer {layer + 1}: "))
-            threshold = int(input(f"Choose the threshold for layer {layer + 1}: "))
-            players[layer] += [Player(i) for i in range(1, n + 1)]
-            dealers[layer] += [Dealer(threshold, False) for _ in range(len(players[layer - 1]))] if (layer - 1) >= 0 else [Dealer(threshold, True)]
+    layers = args.layers if args else int(input("Insert how many layers of NSS you want to use: "))
+    filename = args.file if args else None
+    proactive = args.proactive if args else None
+    players = []
+    dealers = []
+    n_players, thresholds = None, None
 
-        dealers[0][0].chooseSecret()
-        encrypt(players, dealers)
-        decrypt(players, dealers)
+    if args:
+        n_players = args.players
+        thresholds = args.thresholds
+    else:
+        n_players = [int(input(f"Choose the number of players for layer {layer + 1}: ")) for layer in range(layers)]
+        thresholds = [int(input(f"Choose the threshold for layer {layer + 1}: ")) for layer in range(layers)]
+
+    first, idx = True, 0
+    for n, threshold in zip(n_players, thresholds):
+        players.append([Player(i) for i in range(1, n + 1)])
+        dealers.append([Dealer(threshold, False) for _ in range(len(players[idx - 1]))] if not first else [Dealer(threshold, True)])
+        first = False
+        idx += 1
+    open('result.txt', 'w').close()
+
+    dealers[0][0].chooseSecret(filename=filename[0]) if filename else dealers[0][0].chooseSecret()
+    encrypt(players, dealers)
+    decrypt(players, dealers)
+    if proactive == "1" or proactive is None:
         removePlayer(players, dealers)
         open('result.txt', 'w').close()
         decrypt(players, dealers)
 
 if __name__ == "__main__":
     main()
+    sys.exit(0)

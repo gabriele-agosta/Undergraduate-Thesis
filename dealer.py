@@ -21,28 +21,29 @@ class Dealer:
         HE.keyGen()
         return HE
 
-    def chooseSecret(self, secret=None):
+    def chooseSecret(self, secret=None, filename=None):
         ascii_secret = None
         s = []
         if secret is None:
-            while True:
-                choice = input("Choose what you want to encrypt: \n1.Text/Number; \n2.File content. \n")
-                if choice.isdigit() and 1 <= int(choice) <= 2:
+            choice = 2 if filename else None
+            while True and not filename:
+                choice = int(input("Choose what you want to encrypt: \n1.Text/Number; \n2.File content. \n"))
+                if 1 <= choice <= 2:
                     break
             
             ascii_secret = []
-            if choice == "1":
+            if choice == 1:
                 secret = input("Insert your secret: ")
-                ascii_secret = ascii_secret = [self.HE.encryptInt(np.array([ord(c)], dtype=np.int64)) for c in secret]
+                ascii_secret = [self.HE.encryptInt(np.array([ord(c)], dtype=np.int64)) for c in secret]
             else:
                 root = tk.Tk()
                 root.withdraw()
-                file_path = filedialog.askopenfilename()
+                file_path = filedialog.askopenfilename() if not filename else filename
     
                 if file_path:
                     with open(file_path, "r") as file:
                         secret = file.read()
-                        ascii_secret = ascii_secret = [self.HE.encryptInt(np.array([ord(c)], dtype=np.int64)) for c in secret]
+                        ascii_secret = [self.HE.encryptInt(np.array([ord(c)], dtype=np.int64)) for c in secret]
                 else:
                     print("No file selected.")
                 root.destroy()
